@@ -1,28 +1,35 @@
-# syntax=docker/dockerfile:1
+# --- Multi-stage build for smaller production image ---
+# Stage 1: Build and compile
+FROM node:20-alpine AS builder
 
-ARG NODE_VERSION=20.18.0
-ARG PORT=3010
+WORKDIR /app/backend
 
-FROM node:${NODE_VERSION}-slim AS base
-WORKDIR /app
-
-# Copy package config dan install deps
 COPY package*.json ./
 RUN npm install
 
-# Copy semua source code ke image
 COPY . .
 
-# Generate Prisma client
+# Prisma akan menghasilkan binary engine untuk target yang ditentukan di schema.prisma
 RUN npx prisma generate
 
-# Set ENV
-ENV NODE_ENV=production
-ENV PORT=${PORT}
-ENV HOST=0.0.0.0
+RUN npm run build
 
-# Expose port di container
-EXPOSE ${PORT}
+# Stage 2: Production runtime
+FROM node:20-alpine AS runner
 
-# Start command
+WORKDIR /app/backend
+
+COPY --from=builder /app/backend/package*.json ./
+COPY --from=builder /app/backend/node_modules ./node_modules
+COPY --from=builder /app/backend/dist ./dist
+COPY --from=builder /app/backend/prisma ./prisma
+
+# Pastikan dependensi OpenSSL terinstal di Alpine
+# Ini untuk library yang dibutuhkan runtime Prisma Engine
+RUN apk add --no-cache openssl libstdc++ ca-certificates
+
+# Hanya install Prisma CLI sebagai runtime dependency (tidak perlu generate lagi di sini)
+RUN npm install prisma --omit=dev --no-fund --no-audit --ignore-scripts
+
+EXPOSE 4444
 CMD ["npm", "start"]
