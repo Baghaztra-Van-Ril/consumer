@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon --watch .env src/app.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node ./src/app.js"
+    "start": "node ./src/app.js",
+    "test": "jest",
+    "test:cov": "jest --coverage"
   },
   "keywords": [],
   "author": "",
@@ -17,5 +18,10 @@
     "amqplib": "^0.10.8",
     "dotenv": "^17.0.0",
     "prisma": "^6.10.1"
+  },
+  "devDependencies": {
+    "@babel/preset-env": "^7.28.0",
+    "babel-jest": "^30.0.4",
+    "jest": "^30.0.4"
   }
 }
