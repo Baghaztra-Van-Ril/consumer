@@ -1,6 +1,4 @@
 import amqp from "amqplib";
-import dotenv from "dotenv";
-dotenv.config();
 
 export async function createConnection() {
     const connection = await amqp.connect(process.env.RABBITMQ_URL);
