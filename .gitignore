@@ -6,3 +6,4 @@ node_modules
 note.md
 /src/test.js
 /prisma/seed.js
+/coverage
