@@ -34,8 +34,9 @@ describe('createConsumer', () => {
         expect(fakeChannel.assertExchange).toHaveBeenCalled();
         expect(fakeChannel.assertQueue).toHaveBeenCalledWith(`${queue}_retry`, expect.any(Object));
         expect(fakeChannel.bindQueue).toHaveBeenCalled();
-        expect(fakeChannel.consume).toHaveBeenCalledWith(queue, expect.any(Function));
+        expect(fakeChannel.consume).toHaveBeenCalledWith(queue, expect.any(Function), expect.any(Object)); // ✅ fix
     });
+
 
     it('should retry message on handler failure with retry count', async () => {
         const handler = jest.fn().mockRejectedValue(new Error('Something failed'));
@@ -109,7 +110,5 @@ describe('createConsumer', () => {
 
         expect(handler).not.toHaveBeenCalled();
     });
-
-
 
 });
