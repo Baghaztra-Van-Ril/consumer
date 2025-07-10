@@ -48,5 +48,6 @@ export async function handlePaymentStatusUpdate(data) {
     } catch (err) {
         console.error(`❌ Error updating payment status for orderId: ${orderId}`);
         console.error(err);
+        throw err;
     }
 }
