@@ -7,7 +7,7 @@ export async function handlePaymentLog(data) {
         });
 
         if (existing) {
-            console.log(`⚠️ Payment log already exists: ${data.orderId}`);
+            console.info(`⚠️ Payment already exists: ${data.orderId}`);
             return;
         }
 
@@ -30,9 +30,9 @@ export async function handlePaymentLog(data) {
             },
         });
 
-        console.log('✅ Payment log saved:', data.orderId);
+        console.info('✅ Payment log saved:', data.orderId);
     } catch (err) {
-        console.error(`❌ Failed to save payment log for ${data.orderId}:`, err.message);
+        console.error(`❌ Failed to save payment log for ${data.orderId}:`);
         throw err;
     }
 }

@@ -9,6 +9,7 @@ export async function createConsumer(queue, handler) {
 
     const { channel } = await createConnection();
 
+
     await channel.assertQueue(queue, {
         durable: true,
         arguments: {
@@ -34,14 +35,16 @@ export async function createConsumer(queue, handler) {
     channel.consume(queue, async (msg) => {
         if (!msg) return;
 
+        let data;
         try {
-            const data = JSON.parse(msg.content.toString());
+            data = JSON.parse(msg.content.toString());
             await handler(data, msg, channel);
 
-            channel.ack(msg); // ✅ sukses, ACK
+            channel.ack(msg);
         } catch (err) {
             const headers = msg.properties.headers || {};
             const currentRetry = headers['x-retry-count'] || 0;
+            const orderId = (data && data.orderId) || 'Unknown';
 
             const errorMessage = err.message.toLowerCase();
 
@@ -49,13 +52,13 @@ export async function createConsumer(queue, handler) {
                 errorMessage.includes('unique constraint') &&
                 errorMessage.includes('orderid')
             ) {
-                console.warn(`⛔ Duplicate orderId, skipping retry: ${err.message}`);
-                return channel.ack(msg); // tidak retry
+                console.warn(`⛔ Duplicate orderId "${orderId}", skipping retry: ${err.message}`);
+                return channel.ack(msg);
             }
 
             if (currentRetry >= MAX_RETRY) {
-                console.error(`🚫 Max retry reached (${MAX_RETRY}). Discarding message.`);
-                return channel.ack(msg); // Drop
+                console.error(`🚫 Max retry reached (${MAX_RETRY}) for orderId "${orderId}". Discarding message.`);
+                return channel.ack(msg);
             }
 
             const updatedHeaders = {
@@ -65,7 +68,7 @@ export async function createConsumer(queue, handler) {
 
             try {
                 channel.publish(
-                    '', // default exchange untuk routing-key langsung ke queue
+                    '',
                     retryQueue,
                     msg.content,
                     {
@@ -74,12 +77,15 @@ export async function createConsumer(queue, handler) {
                     }
                 );
 
-                console.warn(`🔁 Retry #${currentRetry + 1} for message...`);
-                channel.ack(msg); // ✅ ACK hanya kalau publish retry sukses
+                console.warn(
+                    `🔁 Retry #${currentRetry + 1}/${MAX_RETRY} for orderId "${orderId}" on queue "${queue}". ` +
+                    `Reason: ${err.message}`
+                );
+
+                channel.ack(msg);
             } catch (retryErr) {
                 console.error(`❌ Failed to publish retry message: ${retryErr.message}`);
-                // ❌ Jangan ACK supaya pesan tetap di queue
             }
         }
-    }, { noAck: false }); // ✅ penting: manual ack
+    }, { noAck: false });
 }
